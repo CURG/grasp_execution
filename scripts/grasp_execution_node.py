@@ -25,13 +25,11 @@ class GraspExecutionNode():
 
         rospy.init_node(node_name)
 
-        self.use_robot_hw = rospy.get_param('use_robot_hw', False)
-        self.grasp_approach_tran_frame = rospy.get_param('/approach_tran_frame', '/approach_tran')
-        self.trajectory_display_topic = rospy.get_param('trajectory_display_topic', "/move_group/display_planned_path")
-        self.grasp_listener_topic = rospy.get_param('grasp_listener_topic', "/graspit/grasps")
-        self.move_group_name = rospy.get_param('/arm_name', 'gripper')
-        self.reachability_planner_id = self.move_group_name + rospy.get_param('grasp_executer/planner_config_name',
-                                                                              '[PRMkConfigDefault]')
+        self.grasp_approach_tran_frame = rospy.get_param('/grasp_approach_tran_frame')
+        self.trajectory_display_topic = rospy.get_param('trajectory_display_topic')
+        self.grasp_listener_topic = rospy.get_param('grasp_listener_topic')
+        self.move_group_name = rospy.get_param('/move_group_name')
+        self.reachability_planner_id = self.move_group_name + rospy.get_param('grasp_executer/planner_config_name')
 
         display_trajectory_publisher = rospy.Publisher(self.trajectory_display_topic, moveit_msgs.msg.DisplayTrajectory)
 
@@ -96,7 +94,7 @@ class GraspExecutionNode():
         success = True
 
         #Pre Planning Moves, normally home arm and open hand
-        if self.use_robot_hw and success:
+        if success:
             success, status_msg = self.pre_planning_pipeline.run(grasp_goal.grasp, None, self._grasp_execution)
 
         if success:
@@ -108,7 +106,7 @@ class GraspExecutionNode():
                 rospy.logerr(grasp_status_msg)
 
         #Execute Plan on actual robot
-        if self.use_robot_hw and success:
+        if success:
             success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
 
         # if success:

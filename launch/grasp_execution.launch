@@ -1,0 +1,10 @@
+<launch>
+	<arg name="robot" default="fetch22" />
+
+	<param name="trajectory_display_topic" value="/move_group/display_planned_path"/>
+	<param name="grasp_listener_topic" value="/graspit/grasps"/>
+	<param name="move_group_name" value="gripper"/>
+	<param name="grasp_executer/planner_config_name" value="[PRMkConfigDefault]"/>
+
+	<node name="grasp_execution" pkg="grasp_execution" type="grasp_execution_node.py" />
+</launch>
