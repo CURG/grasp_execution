@@ -49,14 +49,7 @@ class Approach(ExecutionStage):
 class CloseHand(ExecutionStage):
 
     def run(self, grasp_msg, pick_plan):
-        #time.sleep(1.0)
         self._success, self._status_msg, joint_angles = self.robot_interface.hand_manager.close_hand()
-        #self._success, self._status_msg = self.robot_interface.hand_manager.move_hand_trajectory(pick_plan.trajectory_stages[3].joint_trajectory)
-
-        #if self._success:
-        #    grasp_joint_state = self.robot_interface.hand_manager.joint_trajectory_to_joint_state(pick_plan.trajectory_stages[3].joint_trajectory, 0)
-        #    self._success, self._status_msg, joint_angles = self.robot_interface.hand_manager.close_grasp(grasp_joint_state)
-            #self._success, self._status_msg, joint_angles = self.robot_interface.hand_manager.close_hand()
 
 
 class OpenHand(ExecutionStage):
@@ -71,7 +64,7 @@ class HomeArm(ExecutionStage):
     def run(self, grasp_msg, pick_plan):
         self._success = self.robot_interface.home_arm()
         if self._success:
-            self._status_msg ="Success"
+            self._status_msg = "Success"
         else:
             self._status_msg = "Failed to Home Arm."
 
@@ -81,7 +74,7 @@ class GoToDropOff(ExecutionStage):
     def run(self, grasp_msg, pick_plan):
         self._success = self.robot_interface.go_to_dropoff()
         if self._success:
-            self._status_msg ="Success"
+            self._status_msg = "Success"
         else:
             self._status_msg = "Failed to go to dropoff."
 

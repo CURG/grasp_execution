@@ -1,0 +1,29 @@
+---
+hand_closing_subspace:
+  l_gripper_finger_joint: 0
+  r_gripper_finger_joint: 0
+  
+hand_closed_angle: 1.047 
+
+hand_preshape_subspace: 
+  l_gripper_finger_joint: 0.48
+  r_gripper_finger_joint: 0.48
+
+
+hand_joint_order:
+  - l_gripper_finger_joint
+  - r_gripper_finger_joint
+
+
+approach_dir_x: 0
+approach_dir_y: 0
+approach_dir_z: 1
+
+end_effector_name: gripper
+
+grasp_executer/planner_config_name: '[SBLkConfigDefault2]'
+grasp_listener_topic: '/graspit/grasps'
+trajectory_display_topic: '/move_group/display_planned_path'
+
+trajectory_action_name: '/arm_controller/follow_joint_trajectory'
+hand_manager: 'hand_managers.fetch_manager'

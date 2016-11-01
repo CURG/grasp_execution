@@ -1,23 +1,24 @@
 #!/usr/bin/env python
 
 import sys
+import importlib
 
 import rospy
+import actionlib
+import moveit_commander
 import moveit_msgs.msg
 import moveit_msgs.msg
 import control_msgs.msg
-import actionlib
-import moveit_commander
 
 import graspit_msgs.msg
 import graspit_msgs.srv
-import fetch_manager,  execution_stages, robot_interface, execution_pipeline
-from grasp_reachability_analyzer import GraspReachabilityAnalyzer
 
-import GraspManager
+import execution_stages
+import robot_interface
+import execution_pipeline
 
-
-
+from hand_managers import hand_manager
+from reachability_analyzer.grasp_reachability_analyzer import GraspReachabilityAnalyzer
 
 class GraspExecutionNode():
 
@@ -33,8 +34,8 @@ class GraspExecutionNode():
 
         display_trajectory_publisher = rospy.Publisher(self.trajectory_display_topic, moveit_msgs.msg.DisplayTrajectory)
 
-        self.trajectory_action_client = actionlib.SimpleActionClient('/mico_arm_driver/controller/follow_joint_trajectory', control_msgs.msg.FollowJointTrajectoryAction)
-        hand_manager = GraspManager.GraspManager(fetch_manager, self.move_group_name)
+        self.trajectory_action_client = actionlib.SimpleActionClient('/arm_controller/follow_joint_trajectory', control_msgs.msg.FollowJointTrajectoryAction)
+        self.hand_manager = hand_manager.GraspManager(importlib.import_module(rospy.get_param('hand_manager')), self.move_group_name)
 
         moveit_commander.roscpp_initialize(sys.argv)
         group = moveit_commander.MoveGroupCommander(self.move_group_name)
@@ -44,7 +45,7 @@ class GraspExecutionNode():
 
         self.robot_interface = robot_interface.RobotInterface(trajectory_action_client=self.trajectory_action_client,
                                                                display_trajectory_publisher=display_trajectory_publisher,
-                                                               hand_manager=hand_manager,
+                                                               hand_manager=self.hand_manager,
                                                                group=group,
                                                                grasp_reachability_analyzer=grasp_reachability_analyzer)
 
@@ -64,29 +65,11 @@ class GraspExecutionNode():
                                                                  auto_start=False)
             self._grasp_execution.start()
 
-            self._after_grasping = actionlib.SimpleActionServer("after_grasping_action",
-                                                                graspit_msgs.msg.AfterGraspingAction,
-                                                                execute_cb=self._after_grasping_cb,
-                                                                auto_start=False)
-            self._after_grasping.start()
-
-            self._toggle_gripper = actionlib.SimpleActionServer("toggle_gripper_action",
-                                                                graspit_msgs.msg.ToggleGripperAction,
-                                                                execute_cb=self._toggle_gripper_cb,
-                                                                auto_start=False)
-            self._toggle_gripper.start()
-
-            self._manual_movement = actionlib.SimpleActionServer("manual_action",
-                                                                 graspit_msgs.msg.ManualAction,
-                                                                 execute_cb=self._manual_movement_cb,
-                                                                 auto_start=False)
-            self._manual_movement.start()
-
         rospy.loginfo(self.__class__.__name__ + " is initialized")
 
 
     def _grasp_execution_cb(self, grasp_goal):
-
+        
         rospy.loginfo("GraspExecutor::process_grasp_msg::" + str(grasp_goal))
 
         status = graspit_msgs.msg.GraspStatus.SUCCESS
@@ -97,8 +80,8 @@ class GraspExecutionNode():
         if success:
             success, status_msg = self.pre_planning_pipeline.run(grasp_goal.grasp, None, self._grasp_execution)
 
+        #Generate Pick Plan
         if success:
-            #Generate Pick Plan
             success, pick_plan = self.robot_interface.generate_pick_plan(grasp_goal.grasp)
             if not success:
                 grasp_status_msg = "MoveIt Failed to plan pick"
@@ -107,79 +90,16 @@ class GraspExecutionNode():
 
         #Execute Plan on actual robot
         if success:
+            #at some point bring this in instead, but talk to jake first.
+            #self.robot_interface.group.pick(grasp_goal.object_name, [pick_plan.grasp])
+
             success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
 
-        # if success:
-        #     self.robot_interface.move_object()
-
-
         #need to return [] for empty response.
-        print success
-        print status_msg
         _result = graspit_msgs.msg.GraspExecutionResult()
         _result.success = success
         self._grasp_execution.set_succeeded(_result)
         return []
-
-
-    def _after_grasping_cb(self, goal):
-        action_type = goal.action
-
-        print("ACTION REQUESTED: " + action_type)
-
-        if action_type == "moveobject":
-            completed = self.robot_interface.move_object()
-        else:
-            completed = self.robot_interface.open_hand_and_go_home()
-
-        _result = graspit_msgs.msg.AfterGraspingResult()
-        _result.success = completed
-        self._after_grasping.set_succeeded(_result)
-        return []
-
-
-
-    def _toggle_gripper_cb(self, goal):
-        _result = graspit_msgs.msg.ToggleGripperResult()
-        fingers = self.robot_interface.hand_manager.hand_manager.get_mico_joints()
-        if fingers[0] < 3000:
-            self.robot_interface.hand_manager.close_hand()
-        else:
-            self.robot_interface.hand_manager.open_hand()
-        _result.success = True
-        self._toggle_gripper.set_succeeded(_result)
-        return []
-
-    def _manual_movement_cb(self, goal):
-        """ axis: x = 0, y = 1, z = 2, roll = 3, pitch = 4, yaw = 5; direction: positive = 1, negative = -1 """
-        _result = graspit_msgs.msg.ManualResult()
-        success = True
-        axis = goal.manualinfo.axis
-        direction = goal.manualinfo.direction
-
-        if axis < 3:
-            distance = 0
-            while (success == True) and (distance < 0.5):
-                if self._manual_movement.is_preempt_requested():
-                    self._manual_movement.set_preempted()
-
-                    return
-                success = self.robot_interface.manual_move(axis, direction, server=self._manual_movement)
-                distance += 0.05
-
-        else:
-            while success == True:
-                if self._manual_movement.is_preempt_requested():
-                    self._manual_movement.set_preempted()
-                    return
-                success = self.robot_interface.manual_move(axis, direction, server=self._manual_movement)
-
-        if success:
-            _result.success = success
-            self._manual_movement.set_succeeded(_result)
-        return []
-
-
 
 if __name__ == '__main__':
 
