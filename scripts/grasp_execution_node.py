@@ -34,7 +34,7 @@ class GraspExecutionNode():
 
         display_trajectory_publisher = rospy.Publisher(self.trajectory_display_topic, moveit_msgs.msg.DisplayTrajectory)
 
-        self.trajectory_action_client = actionlib.SimpleActionClient('/arm_controller/follow_joint_trajectory', control_msgs.msg.FollowJointTrajectoryAction)
+        self.trajectory_action_client = actionlib.SimpleActionClient(rospy.get_param('trajectory_action_name'), control_msgs.msg.FollowJointTrajectoryAction)
         self.hand_manager = hand_manager.GraspManager(importlib.import_module(rospy.get_param('hand_manager')), self.move_group_name)
 
         moveit_commander.roscpp_initialize(sys.argv)
