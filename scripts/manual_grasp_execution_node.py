@@ -8,5 +8,9 @@ if __name__ == '__main__':
     rospy.loginfo("ge.robot_interface.home_arm()")
     rospy.loginfo("ge.robot_interface.hand_manager.hand_manager.open_hand()")
 
+
+    #create place action goal here
+    #place_goal = message_utils.build_build_place_goal()
+    #ge.robot_interface.group.place(place_goal)
     import IPython
     IPython.embed()
