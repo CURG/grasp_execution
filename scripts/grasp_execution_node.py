@@ -49,12 +49,15 @@ class GraspExecutionNode():
                                                                group=group,
                                                                grasp_reachability_analyzer=grasp_reachability_analyzer)
 
+
+        self.pre_planning_pipeline = execution_pipeline.GraspExecutionPipeline(self.robot_interface,
+                                                                            ['HomeArm', 'OpenHand'])
+
         self.execution_pipeline = execution_pipeline.GraspExecutionPipeline(self.robot_interface,
                                                                             ['MoveToPreGraspPosition',
                                                                              'PreshapeHand', 'Approach',
                                                                              'CloseHand', 'Lift'])
-        self.pre_planning_pipeline = execution_pipeline.GraspExecutionPipeline(self.robot_interface,
-                                                                            ['HomeArm', 'OpenHand'])
+
 
         self.last_grasp_time = 0
 
@@ -91,9 +94,19 @@ class GraspExecutionNode():
         #Execute Plan on actual robot
         if success:
             #at some point bring this in instead, but talk to jake first.
-            #self.robot_interface.group.pick(grasp_goal.object_name, [pick_plan.grasp])
+            # self.robot_interface.group.pick(grasp_goal.grasp.object_name, [pick_plan.grasp])
 
             success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
+            self.robot_interface.group.attach_object(grasp_goal.grasp.object_name)
+            # TODO:
+            # Here are the sample code from fetch l should be place_location
+            # pick_result might be pick_plan in our line 88
+            # l.post_place_posture = self.pick_result.grasp.pre_grasp_posture
+            # l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
+            # l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
+            import IPython 
+            IPython.embed()
+            
 
         #need to return [] for empty response.
         _result = graspit_msgs.msg.GraspExecutionResult()
