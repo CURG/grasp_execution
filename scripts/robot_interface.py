@@ -85,11 +85,11 @@ class RobotInterface:
         return success, pick_plan_result
 
     def drop_off(self, execute=True):
-        success, place_plan = self.grasp_reachability_analyzer.drop_off()
+        success, place_plan = self.grasp_reachability_analyzer.get_place_plan()
 
         self.group.place(place_plan)
         return success
-        
+
     def home_arm(self, execute=True):
 
         def get_plan():

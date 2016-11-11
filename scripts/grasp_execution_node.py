@@ -19,6 +19,7 @@ import execution_pipeline
 
 from hand_managers import hand_manager
 from reachability_analyzer.grasp_reachability_analyzer import GraspReachabilityAnalyzer
+import reachability_analyzer.message_utils as message_utils 
 
 class GraspExecutionNode():
 
@@ -98,9 +99,27 @@ class GraspExecutionNode():
 
             success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
             self.robot_interface.group.attach_object(grasp_goal.grasp.object_name)
+            
             # TODO:
             # Here are the sample code from fetch l should be place_location
             # pick_result might be pick_plan in our line 88
+            place_location = message_utils.build_place_location()
+
+
+            # Generate new place_location with the posture and other fields of the pick_plan
+            place_location.post_place_posture = pick_plan.grasp.pre_grasp_posture
+            place_location.pre_place_approach = pick_plan.pick_result.grasp.pre_grasp_approach
+            place_location.post_place_retreat = pick_plan.pick_result.grasp.post_grasp_retreat
+
+            # WARNING: 'all' is a hardcoded object_name
+            place_goal = message_utils.build_place_goal(place_location, "all", self.move_group)
+
+            success, place_plan = GraspReachabilityAnalyzer.send_place_request(place_goal)
+
+
+            # The following line is the code to execute the place_plan
+            # self.robot_interface.group.place(place_plan)
+
             # l.post_place_posture = self.pick_result.grasp.pre_grasp_posture
             # l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
             # l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
