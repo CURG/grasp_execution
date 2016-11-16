@@ -95,10 +95,10 @@ class GraspExecutionNode():
         #Execute Plan on actual robot
         if success:
             #at some point bring this in instead, but talk to jake first.
-            # self.robot_interface.group.pick(grasp_goal.grasp.object_name, [pick_plan.grasp])
+            self.robot_interface.group.pick(grasp_goal.grasp.object_name, [pick_plan.grasp])
 
-            success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
-            self.robot_interface.group.attach_object(grasp_goal.grasp.object_name)
+            #success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
+            #self.robot_interface.group.attach_object(grasp_goal.grasp.object_name)
             
             # TODO:
             # Here are the sample code from fetch l should be place_location
@@ -108,13 +108,20 @@ class GraspExecutionNode():
 
             # Generate new place_location with the posture and other fields of the pick_plan
             place_location.post_place_posture = pick_plan.grasp.pre_grasp_posture
-            place_location.pre_place_approach = pick_plan.pick_result.grasp.pre_grasp_approach
-            place_location.post_place_retreat = pick_plan.pick_result.grasp.post_grasp_retreat
+            place_location.pre_place_approach = pick_plan.grasp.pre_grasp_approach
+            place_location.post_place_retreat = pick_plan.grasp.post_grasp_retreat
 
+            psi = moveit_commander.PlanningSceneInterface()
+            attached_objects = psi.get_attached_objects()
+            print attached_objects.keys()
+
+
+            import IPython 
+            IPython.embed()
             # WARNING: 'all' is a hardcoded object_name
-            place_goal = message_utils.build_place_goal(place_location, "all", self.move_group)
+            # place_goal = message_utils.build_place_goal(place_location, "all", self.robot_interface.grasp_reachability_analyzer.move_group)
 
-            success, place_plan = GraspReachabilityAnalyzer.send_place_request(place_goal)
+            #success, place_plan = ge.robot_interface.grasp_reachability_analyzer.send_place_request(place_goal)
 
 
             # The following line is the code to execute the place_plan
@@ -123,8 +130,7 @@ class GraspExecutionNode():
             # l.post_place_posture = self.pick_result.grasp.pre_grasp_posture
             # l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
             # l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
-            import IPython 
-            IPython.embed()
+            
             
 
         #need to return [] for empty response.
