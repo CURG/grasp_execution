@@ -20,11 +20,18 @@ import execution_pipeline
 from hand_managers import hand_manager
 from reachability_analyzer.grasp_reachability_analyzer import GraspReachabilityAnalyzer
 
+from moveit_python import (MoveGroupInterface,
+                           PlanningSceneInterface,
+                           PickPlaceInterface)
+
 class GraspExecutionNode():
 
     def __init__(self, node_name='grasp_execution_node', manual_mode=False):
 
         rospy.init_node(node_name)
+        #added by Bo
+        self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
+        # self.scene = PlanningSceneInterface("base_link")
 
         self.grasp_approach_tran_frame = rospy.get_param('/grasp_approach_tran_frame')
         self.trajectory_display_topic = rospy.get_param('trajectory_display_topic')
@@ -68,6 +75,20 @@ class GraspExecutionNode():
         rospy.loginfo(self.__class__.__name__ + " is initialized")
 
 
+    #added by Bo
+    """
+    need to change the parameter!!!
+    """
+    def pick(self, grasp_goal, grasps):
+    
+        success, pick_result = self.pickplace.pick_with_retry(grasp_goal.grasp.object_name,
+                                                              grasps,
+                                                              support_name='table')
+        self.pick_result = pick_result
+        return success
+
+
+
     def _grasp_execution_cb(self, grasp_goal):
         
         rospy.loginfo("GraspExecutor::process_grasp_msg::" + str(grasp_goal))
@@ -91,9 +112,16 @@ class GraspExecutionNode():
         #Execute Plan on actual robot
         if success:
             #at some point bring this in instead, but talk to jake first.
-            #self.robot_interface.group.pick(grasp_goal.object_name, [pick_plan.grasp])
+            # self.robot_interface.group.pick(grasp_goal.object_name, [pick_plan.grasp])
 
-            success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
+            # success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
+            #added by Bo
+            """
+            need to change the parameteres
+            """
+            import IPython
+            IPython.embed()
+            success = self.pick(grasp_goal, [grasp_goal.grasp])
 
         #need to return [] for empty response.
         _result = graspit_msgs.msg.GraspExecutionResult()
