@@ -79,11 +79,17 @@ class GraspExecutionNode():
     """
     need to change the parameter!!!
     """
-    def pick(self, grasp_goal, grasps):
-    
-        success, pick_result = self.pickplace.pick_with_retry(grasp_goal.grasp.object_name,
-                                                              grasps,
+    def pick(self, grasp_goal, pick_plan):
+        
+       
+        try: 
+            moveit_grasps = [pick_plan.grasp]
+            success, pick_result = self.pickplace.pick_with_retry(grasp_goal.grasp.object_name,
+                                                              moveit_grasps,
                                                               support_name='table')
+        except:
+            import IPython
+            IPython.embed()
         self.pick_result = pick_result
         return success
 
@@ -119,9 +125,10 @@ class GraspExecutionNode():
             """
             need to change the parameteres
             """
-            import IPython
-            IPython.embed()
-            success = self.pick(grasp_goal, [grasp_goal.grasp])
+            
+            # grasps = [pick_plan.grasp]
+            # object_name = 
+            success = self.pick(grasp_goal, pick_plan)
 
         #need to return [] for empty response.
         _result = graspit_msgs.msg.GraspExecutionResult()
