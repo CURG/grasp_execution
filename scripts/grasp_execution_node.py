@@ -2,6 +2,7 @@
 
 import sys
 import importlib
+import copy
 
 import rospy
 import actionlib
@@ -23,6 +24,10 @@ from reachability_analyzer.grasp_reachability_analyzer import GraspReachabilityA
 from moveit_python import (MoveGroupInterface,
                            PlanningSceneInterface,
                            PickPlaceInterface)
+from moveit_python.geometry import rotate_pose_msg_by_euler_angles
+from geometry_msgs.msg import PoseStamped
+from moveit_msgs.msg import PlaceLocation, MoveItErrorCodes
+
 
 class GraspExecutionNode():
 
@@ -31,7 +36,7 @@ class GraspExecutionNode():
         rospy.init_node(node_name)
         #added by Bo
         self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
-        # self.scene = PlanningSceneInterface("base_link")
+        self.scene = PlanningSceneInterface("base_link")
 
         self.grasp_approach_tran_frame = rospy.get_param('/grasp_approach_tran_frame')
         self.trajectory_display_topic = rospy.get_param('trajectory_display_topic')
@@ -75,6 +80,16 @@ class GraspExecutionNode():
         rospy.loginfo(self.__class__.__name__ + " is initialized")
 
 
+
+    #added by Bo
+    #Detach previous attached objects
+    def updateScene(self):
+        for name in self.scene.getKnownAttachedObjects():
+            self.scene.removeAttachedObject(name, False)
+        self.scene.waitForSync()
+
+
+
     #added by Bo
     """
     need to change the parameter!!!
@@ -93,7 +108,31 @@ class GraspExecutionNode():
         self.pick_result = pick_result
         return success
 
+    def place(self, grasp_goal, pose_stamped):
+        places = list()
+        l = PlaceLocation()
+        l.place_pose.pose = pose_stamped.pose
+        l.place_pose.header.frame_id = pose_stamped.header.frame_id
 
+        """
+        can change the place location based on the pick location. Let the pick location be the origin.
+        """
+        # copy the posture, approach and retreat from the grasp used
+        l.post_place_posture = self.pick_result.grasp.pre_grasp_posture
+        l.pre_place_approach = self.pick_result.grasp.pre_grasp_approach
+        l.post_place_retreat = self.pick_result.grasp.post_grasp_retreat
+        places.append(copy.deepcopy(l))
+        # create another several places, rotate each by 360/m degrees in yaw direction
+        m = 16 # number of possible place poses
+        pi = 3.141592653589
+        for i in range(0, m-1):
+            l.place_pose.pose = rotate_pose_msg_by_euler_angles(l.place_pose.pose, 0, 0, 2 * pi / m)
+            places.append(copy.deepcopy(l))
+
+        success, place_result = self.pickplace.place_with_retry(grasp_goal.grasp.object_name,
+                                                                places,
+                                                                scene=self.scene)
+        return success
 
     def _grasp_execution_cb(self, grasp_goal):
         
@@ -125,16 +164,25 @@ class GraspExecutionNode():
             """
             need to change the parameteres
             """
-            
-            # grasps = [pick_plan.grasp]
-            # object_name = 
+            self.updateScene()
             success = self.pick(grasp_goal, pick_plan)
-
+        
+        if success:
+            """
+            need to change teh parameters
+            """
+            pose_stamped = PoseStamped()
+            pose_stamped.pose.position.z += 0.05
+            pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
+            success = self.place(grasp_goal, pose_stamped)
         #need to return [] for empty response.
         _result = graspit_msgs.msg.GraspExecutionResult()
         _result.success = success
         self._grasp_execution.set_succeeded(_result)
         return []
+
+
+    
 
 if __name__ == '__main__':
 

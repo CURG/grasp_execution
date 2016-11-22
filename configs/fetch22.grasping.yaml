@@ -27,3 +27,5 @@ trajectory_display_topic: '/move_group/display_planned_path'
 
 trajectory_action_name: '/arm_controller/follow_joint_trajectory'
 hand_manager: 'hand_managers.fetch_manager'
+
+
