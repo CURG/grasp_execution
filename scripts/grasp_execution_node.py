@@ -84,9 +84,10 @@ class GraspExecutionNode():
     #added by Bo
     #Detach previous attached objects
     def updateScene(self):
-        for name in self.scene.getKnownAttachedObjects():
-            self.scene.removeAttachedObject(name, False)
-        self.scene.waitForSync()
+        for name in self.scene.getKnownCollisionObjects():
+            self.scene.removeCollisionObject(name, False)
+        self.scene.removeAttachedObject('all', True)
+        rospy.loginfo("updateScene: detach object")
 
 
 
@@ -95,17 +96,33 @@ class GraspExecutionNode():
     need to change the parameter!!!
     """
     def pick(self, grasp_goal, pick_plan):
-        
+        # import IPython
+        # IPython.embed()
        
         try: 
-            moveit_grasps = [pick_plan.grasp]
-            success, pick_result = self.pickplace.pick_with_retry(grasp_goal.grasp.object_name,
+            # moveit_grasps = [pick_plan.grasp]
+
+            grasp = pick_plan.grasp
+
+            grasp_point = grasp.grasp_posture.points[0]
+            grasp_point.effort = [50.0, 50.0]
+            grasp_point.positions = [0.0, 0.0]
+            grasp_point.time_from_start.secs = 0
+            grasp_point.time_from_start.secs = 2
+            grasp.grasp_posture.points[0] = grasp_point
+            moveit_grasps = [grasp]
+
+            import IPython
+            IPython.embed()
+            success, pick_result = self.pickplace.pick(grasp_goal.grasp.object_name,
                                                               moveit_grasps,
-                                                              support_name='table')
+                                                              support_name='table',
+                                                              scene=self.scene)
+
+            self.pick_result = pick_result
         except:
             import IPython
             IPython.embed()
-        self.pick_result = pick_result
         return success
 
     def place(self, grasp_goal, pose_stamped):
@@ -141,7 +158,8 @@ class GraspExecutionNode():
         status = graspit_msgs.msg.GraspStatus.SUCCESS
         status_msg = "grasp_succeeded"
         success = True
-
+        # import IPython
+        # IPython.embed()
         #Pre Planning Moves, normally home arm and open hand
         if success:
             success, status_msg = self.pre_planning_pipeline.run(grasp_goal.grasp, None, self._grasp_execution)
@@ -165,6 +183,7 @@ class GraspExecutionNode():
             need to change the parameteres
             """
             self.updateScene()
+            
             success = self.pick(grasp_goal, pick_plan)
         
         if success:

@@ -4,4 +4,7 @@
 	<rosparam command="load" file="$(find grasp_execution)/configs/$(arg robot).grasping.yaml" />
 
 	<node name="grasp_execution" pkg="grasp_execution" type="grasp_execution_node.py" output="screen" />
+
+	
+    
 </launch>
