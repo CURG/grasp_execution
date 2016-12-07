@@ -83,10 +83,9 @@ class GraspExecutionNode():
 
     #added by Bo
     #Detach previous attached objects
-    def updateScene(self):
-        for name in self.scene.getKnownCollisionObjects():
-            self.scene.removeCollisionObject(name, False)
-        self.scene.removeAttachedObject('all', True)
+    def update_scene(self):
+        # self.scene.removeCollisionObject('all', True)
+        # self.scene.removeAttachedObject('all', True)
         rospy.loginfo("updateScene: detach object")
 
 
@@ -101,7 +100,8 @@ class GraspExecutionNode():
        
         try: 
             # moveit_grasps = [pick_plan.grasp]
-
+            self.update_scene()
+            
             grasp = pick_plan.grasp
 
             grasp_point = grasp.grasp_posture.points[0]
@@ -110,14 +110,15 @@ class GraspExecutionNode():
             grasp_point.time_from_start.secs = 0
             grasp_point.time_from_start.secs = 2
             grasp.grasp_posture.points[0] = grasp_point
+            grasp.grasp_pose.frame_id = base_link
             moveit_grasps = [grasp]
 
-            import IPython
-            IPython.embed()
-            success, pick_result = self.pickplace.pick(grasp_goal.grasp.object_name,
+            # import IPython
+            # IPython.embed()
+            success, pick_result = self.pickplace.pick_with_retry(grasp_goal.grasp.object_name,
                                                               moveit_grasps,
-                                                              support_name='table',
-                                                              scene=self.scene)
+                                                              support_name='table'
+                                                              scene = self.scene)
 
             self.pick_result = pick_result
         except:
@@ -182,13 +183,12 @@ class GraspExecutionNode():
             """
             need to change the parameteres
             """
-            self.updateScene()
-            
+          
             success = self.pick(grasp_goal, pick_plan)
         
         if success:
             """
-            need to change teh parameters
+            need to change the parameters
             """
             pose_stamped = PoseStamped()
             pose_stamped.pose.position.z += 0.05
