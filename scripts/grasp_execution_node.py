@@ -115,10 +115,11 @@ class GraspExecutionNode():
 
             # import IPython
             # IPython.embed()
-            success, pick_result = self.pickplace.pick_with_retry(grasp_goal.grasp.object_name,
-                                                              moveit_grasps,
-                                                              support_name='table'
-                                                              scene = self.scene)
+            success, pick_result = self.pickplace.pick_with_retry(
+                                        grasp_goal.grasp.object_name, \
+                                        moveit_grasps, \
+                                        support_name='table', \
+                                        scene = self.scene)
 
             self.pick_result = pick_result
         except:
