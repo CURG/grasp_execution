@@ -98,33 +98,44 @@ class GraspExecutionNode():
         # import IPython
         # IPython.embed()
        
-        try: 
+        # try: 
             # moveit_grasps = [pick_plan.grasp]
-            self.update_scene()
-            
-            grasp = pick_plan.grasp
+        self.update_scene()
+        
+        original_grasp = pick_plan.grasp
+        grasp = original_grasp
+   
+        
 
-            grasp_point = grasp.grasp_posture.points[0]
-            grasp_point.effort = [50.0, 50.0]
-            grasp_point.positions = [0.0, 0.0]
-            grasp_point.time_from_start.secs = 0
-            grasp_point.time_from_start.secs = 2
-            grasp.grasp_posture.points[0] = grasp_point
-            grasp.grasp_pose.frame_id = base_link
-            moveit_grasps = [grasp]
+        # import IPython
+        # IPython.embed()
+        p0 = trajectory_msgs.msg.JointTrajectoryPoint()
+        p0.positions = [0.1, 0.1]
+        p0.effort = [50.0, 50.0]
+        p0.time_from_start.secs = 0
 
-            # import IPython
-            # IPython.embed()
-            success, pick_result = self.pickplace.pick_with_retry(
-                                        grasp_goal.grasp.object_name, \
-                                        moveit_grasps, \
-                                        support_name='table', \
-                                        scene = self.scene)
+        p1 = trajectory_msgs.msg.JointTrajectoryPoint()
+        p1.effort = [50.0, 50.0]
+        p1.positions = [0.0, 0.0]
+        p1.time_from_start.secs = 2
 
-            self.pick_result = pick_result
-        except:
-            import IPython
-            IPython.embed()
+        grasp.grasp_posture.points = [p0, p1]
+
+        moveit_grasps = [grasp]
+
+       
+        success, pick_result = self.pickplace.pick_with_retry(
+                                    grasp_goal.grasp.object_name, \
+                                    moveit_grasps, \
+                                    support_name='table', \
+                                    scene = self.scene)
+        
+        self.pick_result = pick_result
+        # except Exception as e:
+        #     import IPython
+        #     IPython.embed()
+        #     return False
+
         return success
 
     def place(self, grasp_goal, pose_stamped):
@@ -192,7 +203,10 @@ class GraspExecutionNode():
             need to change the parameters
             """
             pose_stamped = PoseStamped()
-            pose_stamped.pose.position.z += 0.05
+            """
+            this 0.05 parameter can be changed with different environment
+            """
+            pose_stamped.pose.position.z += 0.03
             pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
             success = self.place(grasp_goal, pose_stamped)
         #need to return [] for empty response.
