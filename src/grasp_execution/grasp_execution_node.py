@@ -75,7 +75,14 @@ class GraspExecutionNode():
                                                                  graspit_msgs.msg.GraspExecutionAction,
                                                                  execute_cb=self._grasp_execution_cb,
                                                                  auto_start=False)
+
+            self._place_execution = actionlib.SimpleActionServer("place_execution_action",
+                                                                 graspit_msgs.msg.PlaceExecutionAction,
+                                                                 execute_cb=self._place_execution_cb,
+                                                                 auto_start=False)
+
             self._grasp_execution.start()
+            self._place_execution.start()
 
         rospy.loginfo(self.__class__.__name__ + " is initialized")
 
@@ -179,6 +186,7 @@ class GraspExecutionNode():
 
         #Generate Pick Plan
         if success:
+            global pick_plan
             success, pick_plan = self.robot_interface.generate_pick_plan(grasp_goal.grasp)
             if not success:
                 grasp_status_msg = "MoveIt Failed to plan pick"
@@ -192,32 +200,42 @@ class GraspExecutionNode():
 
             # success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
             
-          
+            
             success = self.pick(grasp_goal, pick_plan)
+            
         
-        if success:
-            """
-            need to change the parameters
-            """
-            pose_stamped = PoseStamped()
+        # if success:
+        #     """
+        #     need to change the parameters
+        #     """
+        #     pose_stamped = PoseStamped()
 
-            check_point = pose_stamped.pose.position.z
-
-            """
-            this 0.05 parameter can be changed with different environment
-            """
-            pose_stamped.pose.position.z += 0.03
-            pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
-            success = self.place(grasp_goal, pose_stamped)
+        #     """
+        #     this 0.05 parameter can be changed with different environment
+        #     """
+        #     pose_stamped.pose.position.z += 0.03
+        #     pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
+        #     success = self.place(grasp_goal, pose_stamped)
         #need to return [] for empty response.
         _result = graspit_msgs.msg.GraspExecutionResult()
         _result.success = success
         self._grasp_execution.set_succeeded(_result)
         return []
+        
+
+    def _place_execution_cb(self, grasp_goal):
+        global pick_plan
+        pose_stamped = PoseStamped()
+        pose_stamped.pose.position.z += 0.01
+        pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
+        success = self.place(grasp_goal, pose_stamped)
+        _result = graspit_msgs.msg.PlaceExecutionResult()
+        _result.success = success
+        self._place_execution.set_succeeded(_result)
+        return []
 
 
     
-
 if __name__ == '__main__':
 
     try:
