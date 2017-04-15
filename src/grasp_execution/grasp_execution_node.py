@@ -10,8 +10,8 @@ import moveit_commander
 import moveit_msgs.msg
 import control_msgs.msg
 
-import graspit_msgs.msg
-import graspit_msgs.srv
+import graspit_interface.msg
+import graspit_interface.srv
 
 
 import execution_stages
@@ -37,12 +37,11 @@ class GraspExecutionNode():
         
         self.pickplace = PickPlaceInterface("arm", "gripper", verbose=True)
         self.scene = PlanningSceneInterface("base_link")
-
-        self.grasp_approach_tran_frame = rospy.get_param('/grasp_approach_tran_frame')
         self.trajectory_display_topic = rospy.get_param('trajectory_display_topic')
         self.grasp_listener_topic = rospy.get_param('grasp_listener_topic')
         self.move_group_name = rospy.get_param('/move_group_name')
-        self.reachability_planner_id = self.move_group_name + rospy.get_param('grasp_executer/planner_config_name')
+        self.planner_id = self.move_group_name + rospy.get_param('grasp_executer/planner_config_name')
+        self.allowed_planning_time = rospy.get_param('grasp_executer/allowed_planning_time')
 
         display_trajectory_publisher = rospy.Publisher(self.trajectory_display_topic, moveit_msgs.msg.DisplayTrajectory)
 
@@ -52,8 +51,7 @@ class GraspExecutionNode():
         moveit_commander.roscpp_initialize(sys.argv)
         group = moveit_commander.MoveGroupCommander(self.move_group_name)
 
-        planner_id = self.reachability_planner_id
-        grasp_reachability_analyzer = GraspReachabilityAnalyzer(group, self.grasp_approach_tran_frame, planner_id)
+        grasp_reachability_analyzer = GraspReachabilityAnalyzer(group, self.planner_id, self.allowed_planning_time)
 
         self.robot_interface = robot_interface.RobotInterface(trajectory_action_client=self.trajectory_action_client,
                                                                display_trajectory_publisher=display_trajectory_publisher,
@@ -72,12 +70,12 @@ class GraspExecutionNode():
 
         if not manual_mode:
             self._grasp_execution = actionlib.SimpleActionServer("grasp_execution_action",
-                                                                 graspit_msgs.msg.GraspExecutionAction,
+                                                                 graspit_interface.msg.GraspExecutionAction,
                                                                  execute_cb=self._grasp_execution_cb,
                                                                  auto_start=False)
 
             self._place_execution = actionlib.SimpleActionServer("place_execution_action",
-                                                                 graspit_msgs.msg.PlaceExecutionAction,
+                                                                 graspit_interface.msg.PlaceExecutionAction,
                                                                  execute_cb=self._place_execution_cb,
                                                                  auto_start=False)
 
@@ -175,7 +173,7 @@ class GraspExecutionNode():
         # import IPython
         # IPython.embed()
 
-        status = graspit_msgs.msg.GraspStatus.SUCCESS
+        status = graspit_interface.msg.GraspStatus.SUCCESS
         status_msg = "grasp_succeeded"
         success = True
         # import IPython
@@ -190,7 +188,7 @@ class GraspExecutionNode():
             success, pick_plan = self.robot_interface.generate_pick_plan(grasp_goal.grasp)
             if not success:
                 grasp_status_msg = "MoveIt Failed to plan pick"
-                status = graspit_msgs.msg.GraspStatus.ROBOTERROR
+                status = graspit_interface.msg.GraspStatus.ROBOTERROR
                 rospy.logerr(grasp_status_msg)
 
         #Execute Plan on actual robot
@@ -217,7 +215,7 @@ class GraspExecutionNode():
         #     pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
         #     success = self.place(grasp_goal, pose_stamped)
         #need to return [] for empty response.
-        _result = graspit_msgs.msg.GraspExecutionResult()
+        _result = graspit_interface.msg.GraspExecutionResult()
         _result.success = success
         self._grasp_execution.set_succeeded(_result)
         return []
@@ -229,7 +227,7 @@ class GraspExecutionNode():
         pose_stamped.pose.position.z += 0.01
         pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
         success = self.place(grasp_goal, pose_stamped)
-        _result = graspit_msgs.msg.PlaceExecutionResult()
+        _result = graspit_interface.msg.PlaceExecutionResult()
         _result.success = success
         self._place_execution.set_succeeded(_result)
         return []
