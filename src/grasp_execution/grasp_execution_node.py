@@ -25,7 +25,7 @@ from moveit_python import (MoveGroupInterface,
                            PlanningSceneInterface,
                            PickPlaceInterface)
 from moveit_python.geometry import rotate_pose_msg_by_euler_angles
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point, Quaternion
 from moveit_msgs.msg import PlaceLocation, MoveItErrorCodes
 import trajectory_msgs.msg
 
@@ -130,6 +130,7 @@ class GraspExecutionNode():
                                     grasp_goal.grasp.object_name, \
                                     moveit_grasps, \
                                     support_name='table', \
+                                    retries=1,
                                     scene = self.scene)
         
         self.pick_result = pick_result
@@ -221,12 +222,8 @@ class GraspExecutionNode():
         return []
         
 
-    def _place_execution_cb(self, grasp_goal):
-        global pick_plan
-        pose_stamped = PoseStamped()
-        pose_stamped.pose.position.z += 0.01
-        pose_stamped.header.frame_id = pick_plan.grasp.grasp_pose.header.frame_id
-        success = self.place(grasp_goal, pose_stamped)
+    def _place_execution_cb(self, place_goal):
+        success = self.place(place_goal, place_goal.place_pose_stamp)
         _result = graspit_interface.msg.PlaceExecutionResult()
         _result.success = success
         self._place_execution.set_succeeded(_result)
