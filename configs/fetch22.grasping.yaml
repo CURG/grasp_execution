@@ -22,8 +22,14 @@ approach_dir_z: 1
 end_effector_name: gripper
 
 grasp_executer/planner_config_name: '[SBLkConfigDefault2]'
+grasp_executer/allowed_planning_time: 15
+
 grasp_listener_topic: '/graspit/grasps'
 trajectory_display_topic: '/move_group/display_planned_path'
 
 trajectory_action_name: '/arm_controller/follow_joint_trajectory'
 hand_manager: 'hand_managers.fetch_manager'
+
+
+
+
