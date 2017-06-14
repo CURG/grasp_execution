@@ -97,34 +97,11 @@ class GraspExecutionNode():
 
     
     def pick(self, grasp_goal, pick_plan):
-        # import IPython
-        # IPython.embed()
-       
-        # try: 
-            # moveit_grasps = [pick_plan.grasp]
+
         self.update_scene()
         
-        original_grasp = pick_plan.grasp
-        grasp = original_grasp
-   
-        
-
-        # import IPython
-        # IPython.embed()
-        p0 = trajectory_msgs.msg.JointTrajectoryPoint()
-        p0.positions = [0.1, 0.1]
-        p0.effort = [50.0, 50.0]
-        p0.time_from_start.secs = 0
-
-        p1 = trajectory_msgs.msg.JointTrajectoryPoint()
-        p1.effort = [50.0, 50.0]
-        p1.positions = [0.0, 0.0]
-        p1.time_from_start.secs = 2
-
-        grasp.grasp_posture.points = [p0, p1]
-
+        grasp = pick_plan.grasp
         moveit_grasps = [grasp]
-
        
         success, pick_result = self.pickplace.pick_with_retry(
                                     grasp_goal.grasp.object_name, \
@@ -132,13 +109,9 @@ class GraspExecutionNode():
                                     support_name='table', \
                                     retries=1,
                                     scene = self.scene)
+
         
         self.pick_result = pick_result
-        # except Exception as e:
-        #     import IPython
-        #     IPython.embed()
-        #     return False
-
         return success
 
     def place(self, grasp_goal, pose_stamped):
@@ -171,9 +144,6 @@ class GraspExecutionNode():
         
         rospy.loginfo("GraspExecutor::process_grasp_msg::" + str(grasp_goal))
 
-        # import IPython
-        # IPython.embed()
-
         status = graspit_interface.msg.GraspStatus.SUCCESS
         status_msg = "grasp_succeeded"
         success = True
@@ -186,7 +156,14 @@ class GraspExecutionNode():
         #Generate Pick Plan
         if success:
             global pick_plan
-            success, pick_plan = self.robot_interface.generate_pick_plan(grasp_goal.grasp)
+            # success, pick_plan = self.robot_interface.generate_pick_plan(grasp_goal.grasp)
+            move_group_name = rospy.get_param('move_group_name')
+            group = moveit_commander.MoveGroupCommander(move_group_name)
+            planner_id = move_group_name + rospy.get_param('reachability_analyzer/planner_config_name')
+            allowed_planning_time = rospy.get_param('reachability_analyzer/allowed_planning_time')
+            ra = GraspReachabilityAnalyzer(group, planner_id, allowed_planning_time)
+            success, pick_plan = ra.query_moveit_for_reachability(grasp_goal.grasp)
+
             if not success:
                 grasp_status_msg = "MoveIt Failed to plan pick"
                 status = graspit_interface.msg.GraspStatus.ROBOTERROR
@@ -198,7 +175,9 @@ class GraspExecutionNode():
             # self.robot_interface.group.pick(grasp_goal.object_name, [pick_plan.grasp])
 
             # success, status_msg = self.execution_pipeline.run(grasp_goal.grasp, pick_plan, self._grasp_execution)
-            
+            print "grasp_execution_node.py: 207"
+            import IPython
+            IPython.embed()
             
             success = self.pick(grasp_goal, pick_plan)
             
